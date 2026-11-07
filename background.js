@@ -1,7 +1,12 @@
 import { cleanFolder, loadSettings, pdfOptions } from "./settings.js";
 
 const safeName = (s) => (s || "untitled").replace(/[\\/:*?"<>|%]+/g, "_").trim().slice(0, 80);
-let busy = false;
+let job = null; // { cmd, done, failed, total, finished }
+
+const report = () => {
+  chrome.action.setBadgeText({ text: job.finished && !job.total ? "" : `${job.done}/${job.total}` });
+  chrome.runtime.sendMessage({ cmd: "progress", job }).catch(() => {}); // fails when no popup is open
+};
 
 async function withDebugger(tabId, fn) {
   const target = { tabId };
@@ -77,31 +82,32 @@ async function makeAction(cmd, tabs) {
 }
 
 async function run(cmd, tabIds) {
-  if (busy) return;
-  busy = true;
+  if (job && !job.finished) return;
   try {
     const tabs = (await Promise.all(tabIds.map((id) => chrome.tabs.get(id).catch(() => null))))
       .filter((t) => t && /^https?:/.test(t.url));
     const [originalActive] = await chrome.tabs.query({ active: true, currentWindow: true });
     const action = await makeAction(cmd, tabs);
-    let done = 0, failed = 0;
+    job = { cmd, done: 0, failed: 0, total: tabs.length, finished: false };
     const step = async (tab, i) => {
-      try { await action(tab, i); done++; } catch (e) { failed++; console.warn(`TabPrint ${cmd}:`, tab.url, e.message); }
-      chrome.action.setBadgeText({ text: `${done}/${tabs.length}` });
+      try { await action(tab, i); job.done++; } catch (e) { job.failed++; console.warn(`TabPrint ${cmd}:`, tab.url, e.message); }
+      report();
     };
     chrome.action.setBadgeBackgroundColor({ color: "#555" });
-    chrome.action.setBadgeText({ text: `0/${tabs.length}` });
+    report();
     if (cmd === "refresh") await Promise.all(tabs.map(step));
     // ponytail: sequential; parallelize printing if windows with 100+ tabs feel slow
     else for (const [i, tab] of tabs.entries()) await step(tab, i);
     if (cmd === "load" && originalActive) await chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
-    chrome.action.setBadgeBackgroundColor({ color: failed || !tabs.length ? "#c62828" : "#2e7d32" });
+    chrome.action.setBadgeBackgroundColor({ color: job.failed || !tabs.length ? "#c62828" : "#2e7d32" });
     setTimeout(() => chrome.action.setBadgeText({ text: "" }), 5000);
   } finally {
-    busy = false;
+    job = { ...(job ?? { cmd, done: 0, failed: 0, total: 0 }), finished: true };
+    report();
   }
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
-  if (["print", "refresh", "load"].includes(msg.cmd)) run(msg.cmd, msg.tabIds);
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.cmd === "status") sendResponse(job);
+  else if (["print", "refresh", "load"].includes(msg.cmd)) run(msg.cmd, msg.tabIds);
 });

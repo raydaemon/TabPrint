@@ -45,36 +45,64 @@ $("gear").addEventListener("click", () => {
 
 // tab list
 const list = $("tabs");
-const tabs = await chrome.tabs.query({ currentWindow: true });
-for (const t of tabs) {
-  const li = document.createElement("li");
-  li.className = (printable(t) ? "" : "off ") + (t.active ? "active" : "");
-  li.title = printable(t) ? t.url : "Chrome can't print this page";
-  const label = document.createElement("label");
-  const box = Object.assign(document.createElement("input"), { type: "checkbox", value: t.id, checked: printable(t), disabled: !printable(t) });
-  const icon = Object.assign(document.createElement("img"), { src: t.favIconUrl || "icons/16.png", alt: "" });
-  icon.onerror = () => { icon.src = "icons/16.png"; };
-  const title = Object.assign(document.createElement("span"), { textContent: t.title || t.url });
-  label.append(box, icon, title);
-  li.append(label);
-  list.append(li);
+const ACTIONS = ["print", "refresh", "load"];
+const VERB = { print: "Printing", refresh: "Refreshing", load: "Loading" };
+let boxes = [];
+let job = null;
+const running = () => job && !job.finished;
+
+async function renderTabs(checkedIds) {
+  const tabs = await chrome.tabs.query({ currentWindow: true });
+  list.replaceChildren(...tabs.map((t) => {
+    const li = document.createElement("li");
+    li.className = (printable(t) ? "" : "off ") + (t.active ? "active" : "");
+    li.title = printable(t) ? t.url : "Chrome can't print this page";
+    const label = document.createElement("label");
+    const checked = printable(t) && (!checkedIds || checkedIds.has(t.id));
+    const box = Object.assign(document.createElement("input"), { type: "checkbox", value: t.id, checked, disabled: !printable(t) });
+    const icon = Object.assign(document.createElement("img"), { src: t.favIconUrl || "icons/16.png", alt: "" });
+    icon.onerror = () => { icon.src = "icons/16.png"; };
+    const title = Object.assign(document.createElement("span"), { textContent: t.title || t.url });
+    label.append(box, icon, title);
+    li.append(label);
+    return li;
+  }));
+  boxes = [...list.querySelectorAll("input:not(:disabled)")];
+  update();
 }
 
-const boxes = [...list.querySelectorAll("input:not(:disabled)")];
-const update = () => {
-  const n = boxes.filter((b) => b.checked).length;
-  $("count").textContent = `${n} of ${boxes.length}`;
-  for (const id of ["print", "refresh", "load"]) $(id).disabled = !n;
+const selectedIds = () => boxes.filter((b) => b.checked).map((b) => Number(b.value));
+
+function update() {
+  const n = selectedIds().length;
+  $("count").textContent = running() ? `${VERB[job.cmd]} ${job.done + job.failed}/${job.total}` : `${n} of ${boxes.length}`;
+  for (const id of ACTIONS) $(id).disabled = !n || running();
   $("print").textContent = n ? `Print ${n}` : "Print";
-};
+}
+
 list.addEventListener("change", update);
 $("all").addEventListener("click", () => { boxes.forEach((b) => (b.checked = true)); update(); });
 $("none").addEventListener("click", () => { boxes.forEach((b) => (b.checked = false)); update(); });
-for (const cmd of ["print", "refresh", "load"]) {
+
+for (const cmd of ACTIONS) {
   $(cmd).addEventListener("click", async () => {
-    const tabIds = boxes.filter((b) => b.checked).map((b) => Number(b.value));
+    const tabIds = selectedIds();
+    job = { cmd, done: 0, failed: 0, total: tabIds.length, finished: false };
+    update();
     await chrome.runtime.sendMessage({ cmd, tabIds }).catch(() => {});
-    window.close();
+    // Print may open Save As dialogs, so get out of the way. Refresh/Load keep the popup open
+    // (Chrome itself closes it when Load switches tabs; reopening shows live progress).
+    if (cmd === "print") window.close();
   });
 }
-update();
+
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.cmd !== "progress") return;
+  const wasRunning = running();
+  job = msg.job;
+  if (wasRunning && job.finished) renderTabs(new Set(selectedIds())); // titles/favicons may have changed
+  else update();
+});
+
+job = await chrome.runtime.sendMessage({ cmd: "status" }).catch(() => null);
+await renderTabs();
