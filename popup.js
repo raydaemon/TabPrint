@@ -1,4 +1,4 @@
-import { DEFAULTS, loadSettings } from "./settings.js";
+import { DEFAULTS, cleanFolder, loadSettings } from "./settings.js";
 
 const $ = (id) => document.getElementById(id);
 const form = $("settings");
@@ -11,7 +11,18 @@ for (const key of Object.keys(DEFAULTS)) {
   if (el.type === "checkbox") el.checked = s[key];
   else el.value = String(s[key]);
 }
+const syncSave = () => {
+  const ask = $("saveAs").value === "true";
+  $("folder").disabled = ask;
+  const folder = cleanFolder($("folder").value);
+  $("saveHint").textContent = ask
+    ? "Chrome asks for a location for each tab."
+    : `Saves to Downloads${folder ? "/" + folder : ""}`;
+};
+syncSave();
+form.addEventListener("input", syncSave);
 form.addEventListener("change", () => {
+  syncSave();
   const scale = Math.min(200, Math.max(10, Number($("scale").value) || 100));
   $("scale").value = scale;
   chrome.storage.sync.set({
@@ -22,6 +33,8 @@ form.addEventListener("change", () => {
     pages: $("pages").value,
     background: $("background").checked,
     headerFooter: $("headerFooter").checked,
+    saveAs: $("saveAs").value === "true",
+    folder: cleanFolder($("folder").value),
   });
 });
 form.addEventListener("submit", (e) => e.preventDefault());

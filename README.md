@@ -14,7 +14,7 @@ Chrome extension that prints the tabs you pick to PDF in one click.
 Click the TabPrint toolbar icon. A popup lists every tab in the current window.
 
 - Tick the tabs you want, or use **All** / **None**.
-- Click **Print**. Each tab is saved to `Downloads/TabPrint/NN - <tab title>.pdf`
+- Click **Print**. By default each tab is saved to `Downloads/TabPrint/NN - <tab title>.pdf`
   (a single tab is saved without the number prefix).
 - The badge shows progress. Green means all succeeded, red means some failed
   (details in the service worker console).
@@ -22,6 +22,15 @@ Click the TabPrint toolbar icon. A popup lists every tab in the current window.
 Click **⚙** for print settings, like Chrome's print dialog: paper size
 (Letter, Legal, Tabloid, A3, A4, A5), portrait or landscape, margins, scale, page
 ranges, background graphics, and headers and footers. Settings are saved and synced.
+
+**Save to** picks where PDFs go:
+
+- **Downloads folder** saves straight into a subfolder of Downloads (default
+  `TabPrint`, leave blank for the Downloads root). Chrome extensions can't write
+  outside the Downloads folder.
+- **Ask every time** opens Chrome's Save As dialog for each tab.
+
+If Chrome's own "Ask where to save each file" setting is on, Chrome asks regardless.
 
 Chrome shows a "TabPrint started debugging this browser" bar while printing. That is
 expected: the extension uses the `chrome.debugger` API and DevTools `Page.printToPDF`
