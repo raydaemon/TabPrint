@@ -17,6 +17,9 @@ Click the TabPrint toolbar icon. A popup lists every tab in the current window.
 - Click **Print**. By default each tab is saved to `Downloads/TabPrint/NN - <tab title>.pdf`
   (a single tab is saved without the number prefix).
 - **Refresh** reloads the selected tabs, which also wakes discarded (sleeping) tabs.
+- While Refresh or Load runs, the popup stays open with live progress and the button
+  turns into **Stop**. Load switches tabs, which makes Chrome close the popup; reopen it
+  to see progress or stop.
 - **Load** visits each selected tab, scrolls to the bottom until the page stops
   growing, waits for images, then scrolls back to the top. Use it before printing
   pages with lazy-loaded content. Infinite-scroll feeds stop after 200 screens.
@@ -30,8 +33,11 @@ ranges, background graphics, and headers and footers. Settings are saved and syn
 **Save to** picks where PDFs go:
 
 - **Downloads folder** saves straight into a subfolder of Downloads (default
-  `TabPrint`, leave blank for the Downloads root). Chrome extensions can't write
-  outside the Downloads folder.
+  `TabPrint`, leave blank for the Downloads root).
+- **Choose folder…** saves into any folder you pick. Click **Choose…** to open the
+  folder picker. Existing files are never overwritten; a number is added instead.
+  If Chrome forgets the folder permission (e.g. after a restart), Print asks again,
+  and if access is still missing the PDFs go to Downloads so nothing is lost.
 - **Ask every time** opens Chrome's Save As dialog for each tab.
 
 If Chrome's own "Ask where to save each file" setting is on, Chrome asks regardless.

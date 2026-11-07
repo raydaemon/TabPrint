@@ -1,4 +1,4 @@
-import { cleanFolder, loadSettings, pdfOptions } from "./settings.js";
+import { cleanFolder, getDir, loadSettings, pdfOptions } from "./settings.js";
 
 const safeName = (s) => (s || "untitled").replace(/[\\/:*?"<>|%]+/g, "_").trim().slice(0, 80);
 let job = null; // { cmd, done, failed, total, stopped, finished }
@@ -72,12 +72,32 @@ async function loadTab(tab) {
   });
 }
 
+// "name.pdf", "name (1).pdf", ... : never overwrite a file already in the chosen folder
+async function freeName(dir, name) {
+  for (let i = 0; ; i++) {
+    const candidate = i ? name.replace(/\.pdf$/, ` (${i}).pdf`) : name;
+    try { await dir.getFileHandle(candidate); } catch (e) { if (e.name === "NotFoundError") return candidate; }
+  }
+}
+
 async function printTab(tab, prefix, options, save) {
   const { data } = await withDebugger(tab.id, (send) => send("Page.printToPDF", options));
+  const url = "data:application/pdf;base64," + data;
+  const name = `${prefix}${safeName(tab.title)}.pdf`;
+  if (save.mode === "custom") {
+    const dir = await getDir();
+    if (dir && (await dir.queryPermission({ mode: "readwrite" })) === "granted") {
+      const writable = await (await dir.getFileHandle(await freeName(dir, name), { create: true })).createWritable();
+      await writable.write(await (await fetch(url)).blob());
+      await writable.close();
+      return;
+    }
+    console.warn("TabPrint: no access to the chosen folder, saving to Downloads instead");
+  }
   await chrome.downloads.download({
-    url: "data:application/pdf;base64," + data,
-    filename: (save.folder ? save.folder + "/" : "") + `${prefix}${safeName(tab.title)}.pdf`,
-    saveAs: save.saveAs,
+    url,
+    filename: (save.folder ? save.folder + "/" : "") + name,
+    saveAs: save.mode === "ask",
   });
 }
 
@@ -86,7 +106,7 @@ async function makeAction(cmd, tabs) {
   if (cmd === "load") return loadTab;
   const settings = await loadSettings();
   const options = pdfOptions(settings);
-  const save = { saveAs: settings.saveAs, folder: cleanFolder(settings.folder) };
+  const save = { mode: settings.saveMode, folder: cleanFolder(settings.folder) };
   return (tab, i) => printTab(tab, tabs.length === 1 ? "" : `${String(i + 1).padStart(2, "0")} - `, options, save);
 }
 

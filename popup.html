@@ -34,6 +34,11 @@
   form label { color: var(--muted); }
   select, input[type=number], input[type=text] { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); min-width: 0; }
   input:disabled { opacity: .5; }
+  .row { display: contents; }
+  .row[hidden] { display: none; }
+  .dir { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .dir span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .dir button { padding: 3px 10px; }
   .check { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; color: var(--fg) !important; }
   .hint { grid-column: 1 / -1; color: var(--muted); font-size: 11px; margin-top: -4px; }
 </style>
@@ -61,10 +66,20 @@
   <label for="pages">Pages</label>
   <input id="pages" type="text" placeholder="All, e.g. 1-5, 8">
   <span class="hint">Tabs with fewer pages than the range will fail.</span>
-  <label for="saveAs">Save to</label>
-  <select id="saveAs"><option value="false">Downloads folder</option><option value="true">Ask every time</option></select>
-  <label for="folder">Subfolder</label>
-  <input id="folder" type="text" placeholder="Downloads root">
+  <label for="saveMode">Save to</label>
+  <select id="saveMode">
+    <option value="downloads">Downloads folder</option>
+    <option value="custom">Choose folder…</option>
+    <option value="ask">Ask every time</option>
+  </select>
+  <div class="row" id="rowSub">
+    <label for="folder">Subfolder</label>
+    <input id="folder" type="text" placeholder="Downloads root">
+  </div>
+  <div class="row" id="rowDir">
+    <label>Folder</label>
+    <div class="dir"><span id="dirName"></span><button type="button" id="chooseDir">Choose…</button></div>
+  </div>
   <span class="hint" id="saveHint"></span>
   <label class="check"><input id="background" type="checkbox"> Background graphics</label>
   <label class="check"><input id="headerFooter" type="checkbox"> Headers and footers</label>

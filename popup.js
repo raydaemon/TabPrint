@@ -1,4 +1,4 @@
-import { DEFAULTS, cleanFolder, loadSettings } from "./settings.js";
+import { DEFAULTS, cleanFolder, getDir, loadSettings } from "./settings.js";
 
 const $ = (id) => document.getElementById(id);
 const form = $("settings");
@@ -11,13 +11,19 @@ for (const key of Object.keys(DEFAULTS)) {
   if (el.type === "checkbox") el.checked = s[key];
   else el.value = String(s[key]);
 }
+const dir = await getDir().catch(() => null);
+$("dirName").textContent = dir ? dir.name : "None chosen";
+$("chooseDir").addEventListener("click", () => chrome.tabs.create({ url: "folder.html" }));
 const syncSave = () => {
-  const ask = $("saveAs").value === "true";
-  $("folder").disabled = ask;
+  const mode = $("saveMode").value;
+  $("rowSub").hidden = mode !== "downloads";
+  $("rowDir").hidden = mode !== "custom";
   const folder = cleanFolder($("folder").value);
-  $("saveHint").textContent = ask
-    ? "Chrome asks for a location for each tab."
-    : `Saves to Downloads${folder ? "/" + folder : ""}`;
+  $("saveHint").textContent = {
+    downloads: `Saves to Downloads${folder ? "/" + folder : ""}`,
+    custom: dir ? "Files with the same name get a number added." : "Choose a folder to save into.",
+    ask: "Chrome asks for a location for each tab.",
+  }[mode];
 };
 syncSave();
 form.addEventListener("input", syncSave);
@@ -33,7 +39,7 @@ form.addEventListener("change", () => {
     pages: $("pages").value,
     background: $("background").checked,
     headerFooter: $("headerFooter").checked,
-    saveAs: $("saveAs").value === "true",
+    saveMode: $("saveMode").value,
     folder: cleanFolder($("folder").value),
   });
 });
@@ -96,6 +102,11 @@ for (const cmd of ACTIONS) {
       update();
       chrome.runtime.sendMessage({ cmd: "stop" }).catch(() => {});
       return;
+    }
+    // Folder access can lapse (e.g. after a browser restart). Re-ask now, while we have a click.
+    if (cmd === "print" && $("saveMode").value === "custom") {
+      const granted = dir && (await dir.requestPermission({ mode: "readwrite" }).catch(() => "denied")) === "granted";
+      if (!granted) return chrome.tabs.create({ url: "folder.html" });
     }
     const tabIds = selectedIds();
     job = { cmd, done: 0, failed: 0, total: tabIds.length, stopped: false, finished: false };

@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>TabPrint · Save folder</title>
+<link rel="icon" href="icons/32.png">
+<style>
+  :root { color-scheme: light dark; --bg: #fff; --fg: #202124; --muted: #5f6368; --line: #dadce0; --accent: #5b4bdb; --on-accent: #fff; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #202124; --fg: #e8eaed; --muted: #9aa0a6; --line: #3c4043; --accent: #a59bff; --on-accent: #1b1530; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; font: 14px system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  main { width: min(420px, calc(100% - 32px)); text-align: center; }
+  img { width: 64px; height: 64px; }
+  h1 { font-size: 20px; margin: 12px 0 6px; }
+  p { color: var(--muted); margin: 0 0 20px; line-height: 1.5; }
+  #current { color: var(--fg); font-weight: 600; word-break: break-all; }
+  button { font: inherit; cursor: pointer; border-radius: 8px; padding: 9px 18px; border: 1px solid var(--accent); background: var(--accent); color: var(--on-accent); font-weight: 600; }
+  button.secondary { background: transparent; color: var(--accent); }
+  #msg { margin-top: 16px; min-height: 1.5em; }
+</style>
+</head>
+<body>
+<main>
+  <img src="icons/128.png" alt="">
+  <h1>Save folder</h1>
+  <p>TabPrint saves PDFs straight into the folder you choose.<br>Current folder: <span id="current">None</span></p>
+  <button id="grant" class="secondary" hidden>Allow access</button>
+  <button id="pick">Choose folder…</button>
+  <p id="msg" role="status"></p>
+</main>
+<script type="module" src="folder.js"></script>
+</body>
+</html>

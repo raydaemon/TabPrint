@@ -1,7 +1,8 @@
 export const DEFAULTS = {
   paper: "Letter", landscape: false, margins: "default", scale: 100,
   pages: "", background: true, headerFooter: false,
-  saveAs: false, folder: "TabPrint",
+  saveMode: "downloads", // "downloads" | "custom" | "ask"
+  folder: "TabPrint",
 };
 
 // inches, matching Chrome's print dialog
@@ -26,3 +27,18 @@ export function pdfOptions(s) {
     displayHeaderFooter: s.headerFooter,
   };
 }
+
+// The chosen save folder is a FileSystemDirectoryHandle. Handles can't go in chrome.storage,
+// so it lives in IndexedDB (local to this browser).
+const idb = (mode, fn) => new Promise((resolve, reject) => {
+  const open = indexedDB.open("tabprint", 1);
+  open.onupgradeneeded = () => open.result.createObjectStore("kv");
+  open.onerror = () => reject(open.error);
+  open.onsuccess = () => {
+    const req = fn(open.result.transaction("kv", mode).objectStore("kv"));
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  };
+});
+export const getDir = () => idb("readonly", (s) => s.get("dir"));
+export const setDir = (handle) => idb("readwrite", (s) => s.put(handle, "dir"));
