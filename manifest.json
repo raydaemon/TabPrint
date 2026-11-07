@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "TabPrint",
-  "version": "6.11.702",
-  "version_name": "6.11.0702",
+  "version": "6.11.703",
+  "version_name": "6.11.0703",
   "description": "Pick tabs and print them to PDF in one click.",
   "permissions": ["tabs", "debugger", "downloads", "storage"],
   "background": { "service_worker": "background.js", "type": "module" },
