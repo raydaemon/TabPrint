@@ -76,8 +76,13 @@ const selectedIds = () => boxes.filter((b) => b.checked).map((b) => Number(b.val
 function update() {
   const n = selectedIds().length;
   $("count").textContent = running() ? `${VERB[job.cmd]} ${job.done + job.failed}/${job.total}` : `${n} of ${boxes.length}`;
-  for (const id of ACTIONS) $(id).disabled = !n || running();
-  $("print").textContent = n ? `Print ${n}` : "Print";
+  for (const id of ACTIONS) {
+    const stoppable = running() && job.cmd === id && id !== "print";
+    const label = { print: n ? `Print ${n}` : "Print", refresh: "Refresh", load: "Load" }[id];
+    $(id).textContent = stoppable ? (job.stopped ? "Stopping…" : "Stop") : label;
+    $(id).classList.toggle("stop", stoppable);
+    $(id).disabled = stoppable ? job.stopped : !n || running();
+  }
 }
 
 list.addEventListener("change", update);
@@ -86,8 +91,14 @@ $("none").addEventListener("click", () => { boxes.forEach((b) => (b.checked = fa
 
 for (const cmd of ACTIONS) {
   $(cmd).addEventListener("click", async () => {
+    if (running() && job.cmd === cmd) {
+      job.stopped = true;
+      update();
+      chrome.runtime.sendMessage({ cmd: "stop" }).catch(() => {});
+      return;
+    }
     const tabIds = selectedIds();
-    job = { cmd, done: 0, failed: 0, total: tabIds.length, finished: false };
+    job = { cmd, done: 0, failed: 0, total: tabIds.length, stopped: false, finished: false };
     update();
     await chrome.runtime.sendMessage({ cmd, tabIds }).catch(() => {});
     // Print may open Save As dialogs, so get out of the way. Refresh/Load keep the popup open

@@ -1,7 +1,9 @@
 import { cleanFolder, loadSettings, pdfOptions } from "./settings.js";
 
 const safeName = (s) => (s || "untitled").replace(/[\\/:*?"<>|%]+/g, "_").trim().slice(0, 80);
-let job = null; // { cmd, done, failed, total, finished }
+let job = null; // { cmd, done, failed, total, stopped, finished }
+let stopJob = null; // set while a job runs
+let stopPage = null; // set while LOAD_SCRIPT runs in a tab
 
 const report = () => {
   chrome.action.setBadgeText({ text: job.finished && !job.total ? "" : `${job.done}/${job.total}` });
@@ -32,11 +34,12 @@ async function refreshTab(tab) {
 
 // Runs inside the page: scroll to the bottom until the height stops growing, force lazy images, wait for them.
 const LOAD_SCRIPT = `(async () => {
+  window.__tabprintStop = false;
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const el = document.scrollingElement || document.documentElement;
   let lastHeight = -1, stable = 0;
   // ponytail: capped at 200 screens so infinite-scroll feeds terminate
-  for (let i = 0; i < 200 && stable < 3; i++) {
+  for (let i = 0; i < 200 && stable < 3 && !window.__tabprintStop; i++) {
     window.scrollBy(0, innerHeight * 0.9);
     await sleep(200);
     if (innerHeight + scrollY >= el.scrollHeight - 2) {
@@ -45,9 +48,11 @@ const LOAD_SCRIPT = `(async () => {
       await sleep(500);
     }
   }
+  if (!window.__tabprintStop) {
   document.querySelectorAll('img[loading="lazy"]').forEach((img) => (img.loading = "eager"));
   await Promise.all([...document.images].filter((img) => !img.complete).map((img) =>
     new Promise((r) => { img.addEventListener("load", r); img.addEventListener("error", r); setTimeout(r, 5000); })));
+  }
   scrollTo(0, 0);
   await sleep(300);
 })()`;
@@ -57,8 +62,12 @@ async function loadTab(tab) {
   // Background tabs don't render, so IntersectionObserver-based lazy loading never fires there.
   await chrome.tabs.update(tab.id, { active: true });
   await waitComplete(tab.id);
+  if (job.stopped) return;
   await withDebugger(tab.id, async (send) => {
+    stopPage = () => send("Runtime.evaluate", { expression: "window.__tabprintStop = true" });
+    if (job.stopped) await stopPage();
     const { exceptionDetails } = await send("Runtime.evaluate", { expression: LOAD_SCRIPT, awaitPromise: true });
+    stopPage = null;
     if (exceptionDetails) throw new Error(exceptionDetails.text);
   });
 }
@@ -88,26 +97,32 @@ async function run(cmd, tabIds) {
       .filter((t) => t && /^https?:/.test(t.url));
     const [originalActive] = await chrome.tabs.query({ active: true, currentWindow: true });
     const action = await makeAction(cmd, tabs);
-    job = { cmd, done: 0, failed: 0, total: tabs.length, finished: false };
+    job = { cmd, done: 0, failed: 0, total: tabs.length, stopped: false, finished: false };
+    let resolveStopped;
+    const stopped = new Promise((r) => (resolveStopped = r));
+    stopJob = () => { job.stopped = true; resolveStopped(); stopPage?.().catch(() => {}); report(); };
     const step = async (tab, i) => {
       try { await action(tab, i); job.done++; } catch (e) { job.failed++; console.warn(`TabPrint ${cmd}:`, tab.url, e.message); }
-      report();
+      if (!job.finished) report();
     };
     chrome.action.setBadgeBackgroundColor({ color: "#555" });
     report();
-    if (cmd === "refresh") await Promise.all(tabs.map(step));
+    // Stop on refresh just stops waiting: reloads already sent can't be recalled.
+    if (cmd === "refresh") await Promise.race([Promise.all(tabs.map(step)), stopped]);
     // ponytail: sequential; parallelize printing if windows with 100+ tabs feel slow
-    else for (const [i, tab] of tabs.entries()) await step(tab, i);
+    else for (const [i, tab] of tabs.entries()) { if (job.stopped) break; await step(tab, i); }
     if (cmd === "load" && originalActive) await chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
-    chrome.action.setBadgeBackgroundColor({ color: job.failed || !tabs.length ? "#c62828" : "#2e7d32" });
+    chrome.action.setBadgeBackgroundColor({ color: job.stopped ? "#555" : job.failed || !tabs.length ? "#c62828" : "#2e7d32" });
     setTimeout(() => chrome.action.setBadgeText({ text: "" }), 5000);
   } finally {
-    job = { ...(job ?? { cmd, done: 0, failed: 0, total: 0 }), finished: true };
+    stopJob = stopPage = null;
+    job = { ...(job ?? { cmd, done: 0, failed: 0, total: 0, stopped: false }), finished: true };
     report();
   }
 }
 
 chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg.cmd === "status") sendResponse(job);
+  else if (msg.cmd === "stop") stopJob?.();
   else if (["print", "refresh", "load"].includes(msg.cmd)) run(msg.cmd, msg.tabIds);
 });

@@ -15,6 +15,8 @@
   button:hover:not(:disabled) { background: var(--hover); }
   button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
   #refresh { margin-left: auto; }
+  .bar button.stop { border-color: #d93025; color: #d93025; min-width: 64px; }
+  @media (prefers-color-scheme: dark) { .bar button.stop { border-color: #f28b82; color: #f28b82; } }
   button:disabled { opacity: .5; cursor: default; }
   #gear { padding: 2px 7px; font-size: 16px; line-height: 1.2; }
   #gear[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
