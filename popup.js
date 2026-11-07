@@ -84,7 +84,7 @@ function update() {
   $("count").textContent = running() ? `${VERB[job.cmd]} ${job.done + job.failed}/${job.total}` : `${n} of ${boxes.length}`;
   for (const id of ACTIONS) {
     const stoppable = running() && job.cmd === id && id !== "print";
-    const label = { print: n ? `Print ${n}` : "Print", refresh: "Refresh", load: "Load" }[id];
+    const label = { print: "Print", refresh: "Refresh", load: "Load" }[id];
     $(id).textContent = stoppable ? (job.stopped ? "Stopping…" : "Stop") : label;
     $(id).classList.toggle("stop", stoppable);
     $(id).disabled = stoppable ? job.stopped : !n || running();
