@@ -36,8 +36,9 @@ ranges, background graphics, and headers and footers. Settings are saved and syn
   `TabPrint`, leave blank for the Downloads root).
 - **Choose folder…** saves into any folder you pick. Click **Choose…** to open the
   folder picker. Existing files are never overwritten; a number is added instead.
-  If Chrome forgets the folder permission (e.g. after a restart), Print asks again,
-  and if access is still missing the PDFs go to Downloads so nothing is lost.
+  Keep the popup open while printing: Chrome only lets an open extension page write
+  to the folder, so the popup saves each PDF. If you close it early, or Chrome forgets
+  the folder permission, the remaining PDFs go to Downloads so nothing is lost.
 - **Ask every time** opens Chrome's Save As dialog for each tab.
 
 If Chrome's own "Ask where to save each file" setting is on, Chrome asks regardless.

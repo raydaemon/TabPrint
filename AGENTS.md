@@ -22,6 +22,9 @@ No build step, no dependencies. Plain ES modules loaded directly by Chrome.
   the user-chosen save folder (a `FileSystemDirectoryHandle`) in IndexedDB.
 - `folder.html` / `folder.js`: tab page with the folder picker. `showDirectoryPicker` can't run
   in the popup (native dialogs close it), so the popup opens this page instead.
+  Chrome revokes folder access when no extension page is open and the worker isn't a page,
+  so the worker sends each PDF to the popup (`save` message) and the popup writes it. The popup
+  stays open while printing to a chosen folder; without it PDFs fall back to Downloads.
 - `popup.html` / `popup.js`: fixed 340x480 popup. The settings form overlays the tab list
   so opening it never resizes the popup or moves the gear button. Keep it that way.
 - `icons/`: `icon.svg` for 32/48/128, `icon-small.svg` for 16. Regenerate PNGs with:
@@ -50,7 +53,8 @@ Bump the version in `manifest.json` with every code change.
 After a change:
 
 1. `node --check --input-type=module < file.js` for each changed JS file, and
-   `node tests/badge.test.mjs` (worker job counting, with a stubbed `chrome`).
+   `node tests/badge.test.mjs && node tests/settings.test.mjs` (worker job counting with a
+   stubbed `chrome`; folder path cleaning and no-overwrite file naming).
 2. Reload the unpacked extension at `chrome://extensions` and try it on real tabs.
 3. For popup layout, open `popup.html` in headless Chrome with a stub `window.chrome`
    (`storage.sync.get/set`, `tabs.query`, `runtime.sendMessage`, `runtime.onMessage`) and take

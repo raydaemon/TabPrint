@@ -1,4 +1,4 @@
-import { DEFAULTS, cleanFolder, getDir, loadSettings } from "./settings.js";
+import { DEFAULTS, cleanFolder, getDir, loadSettings, writeToDir } from "./settings.js";
 
 const $ = (id) => document.getElementById(id);
 const form = $("settings");
@@ -21,7 +21,7 @@ const syncSave = () => {
   const folder = cleanFolder($("folder").value);
   $("saveHint").textContent = {
     downloads: `Saves to Downloads${folder ? "/" + folder : ""}`,
-    custom: dir ? "Files with the same name get a number added." : "Choose a folder to save into.",
+    custom: dir ? "Keep this popup open while printing. Existing files are never overwritten." : "Choose a folder to save into.",
     ask: "Chrome asks for a location for each tab.",
   }[mode];
 };
@@ -114,11 +114,18 @@ for (const cmd of ACTIONS) {
     await chrome.runtime.sendMessage({ cmd, tabIds }).catch(() => {});
     // Print may open Save As dialogs, so get out of the way. Refresh/Load keep the popup open
     // (Chrome itself closes it when Load switches tabs; reopening shows live progress).
-    if (cmd === "print") window.close();
+    // When saving to a chosen folder the popup must stay open: it holds the folder access and
+    // writes each PDF the worker sends it.
+    if (cmd === "print" && $("saveMode").value !== "custom") window.close();
   });
 }
 
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  if (msg.cmd === "save") {
+    if (!dir) return;
+    writeToDir(dir, msg.name, msg.url).then(() => sendResponse({ ok: true }), (e) => sendResponse({ ok: false, error: e.message }));
+    return true; // respond asynchronously
+  }
   if (msg.cmd !== "progress") return;
   const wasRunning = running();
   job = msg.job;

@@ -1,4 +1,4 @@
-import { cleanFolder, getDir, loadSettings, pdfOptions } from "./settings.js";
+import { cleanFolder, getDir, loadSettings, pdfOptions, writeToDir } from "./settings.js";
 
 const safeName = (s) => (s || "untitled").replace(/[\\/:*?"<>|%]+/g, "_").trim().slice(0, 80);
 let job = null; // { cmd, done, failed, total, stopped, finished }
@@ -72,27 +72,20 @@ async function loadTab(tab) {
   });
 }
 
-// "name.pdf", "name (1).pdf", ... : never overwrite a file already in the chosen folder
-async function freeName(dir, name) {
-  for (let i = 0; ; i++) {
-    const candidate = i ? name.replace(/\.pdf$/, ` (${i}).pdf`) : name;
-    try { await dir.getFileHandle(candidate); } catch (e) { if (e.name === "NotFoundError") return candidate; }
-  }
-}
 
 async function printTab(tab, prefix, options, save) {
   const { data } = await withDebugger(tab.id, (send) => send("Page.printToPDF", options));
   const url = "data:application/pdf;base64," + data;
   const name = `${prefix}${safeName(tab.title)}.pdf`;
   if (save.mode === "custom") {
-    const dir = await getDir();
-    if (dir && (await dir.queryPermission({ mode: "readwrite" })) === "granted") {
-      const writable = await (await dir.getFileHandle(await freeName(dir, name), { create: true })).createWritable();
-      await writable.write(await (await fetch(url)).blob());
-      await writable.close();
-      return;
-    }
-    console.warn("TabPrint: no access to the chosen folder, saving to Downloads instead");
+    // Chrome drops folder access once no extension page is open, and the worker isn't a page.
+    // So the popup (kept open while printing) writes the file; the worker writes only if it
+    // happens to hold access itself (e.g. "Allow on every visit").
+    const dir = await getDir().catch(() => null);
+    if (dir && (await dir.queryPermission({ mode: "readwrite" })) === "granted") return writeToDir(dir, name, url);
+    const res = await chrome.runtime.sendMessage({ cmd: "save", name, url }).catch(() => null);
+    if (res?.ok) return;
+    console.warn("TabPrint: no access to the chosen folder, saving to Downloads instead.", res?.error ?? "Popup closed.");
   }
   await chrome.downloads.download({
     url,

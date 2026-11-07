@@ -42,3 +42,17 @@ const idb = (mode, fn) => new Promise((resolve, reject) => {
 });
 export const getDir = () => idb("readonly", (s) => s.get("dir"));
 export const setDir = (handle) => idb("readwrite", (s) => s.put(handle, "dir"));
+
+// "name.pdf", "name (1).pdf", ... : never overwrite a file already in the chosen folder
+export async function freeName(dir, name) {
+  for (let i = 0; ; i++) {
+    const candidate = i ? name.replace(/\.pdf$/, ` (${i}).pdf`) : name;
+    try { await dir.getFileHandle(candidate); } catch (e) { if (e.name === "NotFoundError") return candidate; }
+  }
+}
+
+export async function writeToDir(dir, name, url) {
+  const writable = await (await dir.getFileHandle(await freeName(dir, name), { create: true })).createWritable();
+  await writable.write(await (await fetch(url)).blob());
+  await writable.close();
+}
