@@ -5,11 +5,11 @@
 <style>
   :root { color-scheme: light dark; --bg: #fff; --fg: #202124; --muted: #5f6368; --line: #dadce0; --hover: #f1f3f4; --accent: #5b4bdb; --on-accent: #fff; }
   @media (prefers-color-scheme: dark) { :root { --bg: #292a2d; --fg: #e8eaed; --muted: #9aa0a6; --line: #3c4043; --hover: #35363a; --accent: #a59bff; --on-accent: #1b1530; } }
-  body { margin: 0; width: 340px; font: 13px system-ui, sans-serif; background: var(--bg); color: var(--fg); }
+  body { margin: 0; width: 340px; height: 480px; display: flex; flex-direction: column; overflow: hidden; font: 13px system-ui, sans-serif; background: var(--bg); color: var(--fg); }
   header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
   header img { width: 20px; height: 20px; }
   h1 { font-size: 14px; margin: 0; flex: 1; }
-  #count { color: var(--muted); font-size: 12px; }
+  #count { color: var(--muted); font-size: 12px; min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
   button { font: inherit; cursor: pointer; border-radius: 6px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
   .bar button { padding: 6px 10px; }
   button:hover:not(:disabled) { background: var(--hover); }
@@ -18,7 +18,8 @@
   button:disabled { opacity: .5; cursor: default; }
   #gear { padding: 2px 7px; font-size: 16px; line-height: 1.2; }
   #gear[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
-  ul { list-style: none; margin: 0; padding: 4px 0; max-height: 320px; overflow-y: auto; }
+  .content { position: relative; flex: 1; min-height: 0; }
+  ul { list-style: none; margin: 0; padding: 4px 0; height: 100%; box-sizing: border-box; overflow-y: auto; scrollbar-gutter: stable; }
   li label { display: flex; align-items: center; gap: 8px; padding: 5px 12px; cursor: pointer; }
   li label:hover { background: var(--hover); }
   li.off label { cursor: default; opacity: .45; }
@@ -26,7 +27,7 @@
   li span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   li.active span { font-weight: 600; }
   .bar { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); }
-  form { display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; padding: 12px; border-bottom: 1px solid var(--line); }
+  form { position: absolute; inset: 0; z-index: 1; overflow-y: auto; background: var(--bg); display: grid; grid-template-columns: auto 1fr; gap: 8px 10px; align-items: center; align-content: start; padding: 12px; }
   form[hidden] { display: none; }
   form label { color: var(--muted); }
   select, input[type=number], input[type=text] { font: inherit; padding: 4px 6px; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--fg); min-width: 0; }
@@ -42,6 +43,7 @@
   <span id="count"></span>
   <button id="gear" title="Print settings" aria-label="Print settings" aria-expanded="false" aria-controls="settings">⚙</button>
 </header>
+<div class="content">
 <form id="settings" hidden>
   <label for="paper">Paper size</label>
   <select id="paper">
@@ -66,6 +68,7 @@
   <label class="check"><input id="headerFooter" type="checkbox"> Headers and footers</label>
 </form>
 <ul id="tabs"></ul>
+</div>
 <div class="bar">
   <button id="all">All</button>
   <button id="none">None</button>
