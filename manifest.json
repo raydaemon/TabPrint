@@ -1,0 +1,9 @@
+{
+  "manifest_version": 3,
+  "name": "TabPrint",
+  "version": "0.1.0",
+  "description": "Print every tab in the current window to PDF.",
+  "permissions": ["tabs", "debugger", "downloads"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Print all tabs to PDF" }
+}
