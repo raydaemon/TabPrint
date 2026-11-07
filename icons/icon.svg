@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c5cff"/>
+      <stop offset=".55" stop-color="#b84dff"/>
+      <stop offset="1" stop-color="#ff5c8a"/>
+    </linearGradient>
+    <linearGradient id="ink" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#6a4cff"/>
+      <stop offset="1" stop-color="#ff4f86"/>
+    </linearGradient>
+    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".28"/>
+      <stop offset=".5" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="sh" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="#2a0b4d" flood-opacity=".35"/>
+    </filter>
+  </defs>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bg)"/>
+  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#gloss)"/>
+  <!-- fanned sheets = tabs -->
+  <rect x="30" y="26" width="56" height="72" rx="7" fill="#fff" opacity=".35" transform="rotate(-14 58 62)"/>
+  <rect x="34" y="24" width="56" height="72" rx="7" fill="#fff" opacity=".6" transform="rotate(-6 62 60)"/>
+  <!-- front sheet with folded corner -->
+  <g filter="url(#sh)">
+    <path d="M45 28h33l16 16v54a7 7 0 0 1-7 7H45a7 7 0 0 1-7-7V35a7 7 0 0 1 7-7z" fill="#fff"/>
+  </g>
+  <path d="M78 28v11a5 5 0 0 0 5 5h11z" fill="#e3d9ff"/>
+  <rect x="47" y="44" width="22" height="5" rx="2.5" fill="#d9ccff"/>
+  <rect x="47" y="55" width="36" height="5" rx="2.5" fill="#ebe4ff"/>
+  <rect x="47" y="66" width="28" height="5" rx="2.5" fill="#ebe4ff"/>
+  <!-- download badge -->
+  <circle cx="88" cy="90" r="19" fill="url(#ink)" stroke="#fff" stroke-width="4"/>
+  <path d="M88 80v16m-7-7 7 7 7-7" fill="none" stroke="#fff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

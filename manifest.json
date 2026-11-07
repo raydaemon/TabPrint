@@ -1,9 +1,15 @@
 {
   "manifest_version": 3,
   "name": "TabPrint",
-  "version": "0.1.0",
-  "description": "Print every tab in the current window to PDF.",
-  "permissions": ["tabs", "debugger", "downloads"],
-  "background": { "service_worker": "background.js" },
-  "action": { "default_title": "Print all tabs to PDF" }
+  "version": "6.11.701",
+  "version_name": "6.11.0701",
+  "description": "Pick tabs and print them to PDF in one click.",
+  "permissions": ["tabs", "debugger", "downloads", "storage"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "icons": { "16": "icons/16.png", "32": "icons/32.png", "48": "icons/48.png", "128": "icons/128.png" },
+  "action": {
+    "default_title": "TabPrint",
+    "default_popup": "popup.html",
+    "default_icon": { "16": "icons/16.png", "32": "icons/32.png" }
+  }
 }

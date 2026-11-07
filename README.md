@@ -1,6 +1,8 @@
 # TabPrint
 
-Chrome extension that prints every tab in the current window to PDF with one click.
+<img src="icons/128.png" width="64" align="right" alt="">
+
+Chrome extension that prints the tabs you pick to PDF in one click.
 
 ## Install
 
@@ -9,9 +11,17 @@ Chrome extension that prints every tab in the current window to PDF with one cli
 
 ## Use
 
-Click the TabPrint toolbar icon. Each `http(s)` tab in the current window is saved to
-`Downloads/TabPrint/NN - <tab title>.pdf`. The badge shows progress; green means all
-succeeded, red means some tabs failed (details in the service worker console).
+Click the TabPrint toolbar icon. A popup lists every tab in the current window.
+
+- Tick the tabs you want, or use **All** / **None**.
+- Click **Print**. Each tab is saved to `Downloads/TabPrint/NN - <tab title>.pdf`
+  (a single tab is saved without the number prefix).
+- The badge shows progress. Green means all succeeded, red means some failed
+  (details in the service worker console).
+
+Click **⚙** for print settings, like Chrome's print dialog: paper size
+(Letter, Legal, Tabloid, A3, A4, A5), portrait or landscape, margins, scale, page
+ranges, background graphics, and headers and footers. Settings are saved and synced.
 
 Chrome shows a "TabPrint started debugging this browser" bar while printing. That is
 expected: the extension uses the `chrome.debugger` API and DevTools `Page.printToPDF`
@@ -20,5 +30,11 @@ so no per-tab Save dialog is needed.
 ## Limitations
 
 - Discarded (sleeping) tabs may print blank. Reload them first.
-- `chrome://`, Web Store and other restricted pages are skipped.
-- Paper size and options are fixed to Chrome defaults with backgrounds on.
+- `chrome://`, Web Store and other restricted pages are greyed out and can't be printed.
+- A page range larger than a tab's page count makes that tab fail.
+
+## Versioning
+
+Versions follow `6.<month>.<DDNN>` (day + build number). Chrome forbids leading zeros
+in `version`, so `0701` is stored as `version: 6.11.701` with
+`version_name: 6.11.0701` for display.
