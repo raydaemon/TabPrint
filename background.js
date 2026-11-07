@@ -5,7 +5,7 @@ let job = null; // { cmd, done, failed, total, stopped, finished }
 let stopJob = null; // set while a job runs
 let stopPage = null; // set while LOAD_SCRIPT runs in a tab
 
-const report = () => {
+const showProgress = () => {
   chrome.action.setBadgeText({ text: job.finished && !job.total ? "" : `${job.done}/${job.total}` });
   chrome.runtime.sendMessage({ cmd: "progress", job }).catch(() => {}); // fails when no popup is open
 };
@@ -112,31 +112,35 @@ async function makeAction(cmd, tabs) {
 
 async function run(cmd, tabIds) {
   if (job && !job.finished) return;
+  // Each run owns its job object, claimed before the first await. Steps still pending from an
+  // earlier run (e.g. reloads of a stopped Refresh) only touch their own job, never this one.
+  const current = (job = { cmd, done: 0, failed: 0, total: 0, stopped: false, finished: false });
+  const report = () => { if (job === current) showProgress(); };
   try {
     const tabs = (await Promise.all(tabIds.map((id) => chrome.tabs.get(id).catch(() => null))))
       .filter((t) => t && /^https?:/.test(t.url));
     const [originalActive] = await chrome.tabs.query({ active: true, currentWindow: true });
     const action = await makeAction(cmd, tabs);
-    job = { cmd, done: 0, failed: 0, total: tabs.length, stopped: false, finished: false };
+    current.total = tabs.length;
     let resolveStopped;
     const stopped = new Promise((r) => (resolveStopped = r));
-    stopJob = () => { job.stopped = true; resolveStopped(); stopPage?.().catch(() => {}); report(); };
+    stopJob = () => { current.stopped = true; resolveStopped(); stopPage?.().catch(() => {}); report(); };
     const step = async (tab, i) => {
-      try { await action(tab, i); job.done++; } catch (e) { job.failed++; console.warn(`TabPrint ${cmd}:`, tab.url, e.message); }
-      if (!job.finished) report();
+      try { await action(tab, i); current.done++; } catch (e) { current.failed++; console.warn(`TabPrint ${cmd}:`, tab.url, e.message); }
+      if (!current.finished) report();
     };
     chrome.action.setBadgeBackgroundColor({ color: "#555" });
     report();
     // Stop on refresh just stops waiting: reloads already sent can't be recalled.
     if (cmd === "refresh") await Promise.race([Promise.all(tabs.map(step)), stopped]);
     // ponytail: sequential; parallelize printing if windows with 100+ tabs feel slow
-    else for (const [i, tab] of tabs.entries()) { if (job.stopped) break; await step(tab, i); }
+    else for (const [i, tab] of tabs.entries()) { if (current.stopped) break; await step(tab, i); }
     if (cmd === "load" && originalActive) await chrome.tabs.update(originalActive.id, { active: true }).catch(() => {});
-    chrome.action.setBadgeBackgroundColor({ color: job.stopped ? "#555" : job.failed || !tabs.length ? "#c62828" : "#2e7d32" });
-    setTimeout(() => chrome.action.setBadgeText({ text: "" }), 5000);
+    chrome.action.setBadgeBackgroundColor({ color: current.stopped ? "#555" : current.failed || !tabs.length ? "#c62828" : "#2e7d32" });
+    setTimeout(() => { if (job === current) chrome.action.setBadgeText({ text: "" }); }, 5000);
   } finally {
     stopJob = stopPage = null;
-    job = { ...(job ?? { cmd, done: 0, failed: 0, total: 0, stopped: false }), finished: true };
+    current.finished = true;
     report();
   }
 }

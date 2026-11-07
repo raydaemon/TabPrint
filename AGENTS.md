@@ -47,9 +47,10 @@ Bump the version in `manifest.json` with every code change.
 
 ## Testing
 
-There are no automated tests. After a change:
+After a change:
 
-1. `node --check --input-type=module < file.js` for each changed JS file.
+1. `node --check --input-type=module < file.js` for each changed JS file, and
+   `node tests/badge.test.mjs` (worker job counting, with a stubbed `chrome`).
 2. Reload the unpacked extension at `chrome://extensions` and try it on real tabs.
 3. For popup layout, open `popup.html` in headless Chrome with a stub `window.chrome`
    (`storage.sync.get/set`, `tabs.query`, `runtime.sendMessage`, `runtime.onMessage`) and take
