@@ -11,8 +11,10 @@
   h1 { font-size: 14px; margin: 0; flex: 1; }
   #count { color: var(--muted); font-size: 12px; }
   button { font: inherit; cursor: pointer; border-radius: 6px; padding: 6px 12px; border: 1px solid var(--line); background: transparent; color: var(--fg); }
+  .bar button { padding: 6px 10px; }
   button:hover:not(:disabled) { background: var(--hover); }
-  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; margin-left: auto; }
+  button.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); font-weight: 600; }
+  #refresh { margin-left: auto; }
   button:disabled { opacity: .5; cursor: default; }
   #gear { padding: 2px 7px; font-size: 16px; line-height: 1.2; }
   #gear[aria-expanded="true"] { border-color: var(--accent); color: var(--accent); }
@@ -67,6 +69,8 @@
 <div class="bar">
   <button id="all">All</button>
   <button id="none">None</button>
+  <button id="refresh" class="action" title="Reload the selected tabs">Refresh</button>
+  <button id="load" class="action" title="Scroll each selected tab to the bottom so lazy content and images load">Load</button>
   <button id="print" class="primary">Print</button>
 </div>
 <script type="module" src="popup.js"></script>

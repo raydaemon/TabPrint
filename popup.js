@@ -64,15 +64,17 @@ const boxes = [...list.querySelectorAll("input:not(:disabled)")];
 const update = () => {
   const n = boxes.filter((b) => b.checked).length;
   $("count").textContent = `${n} of ${boxes.length}`;
-  $("print").disabled = !n;
+  for (const id of ["print", "refresh", "load"]) $(id).disabled = !n;
   $("print").textContent = n ? `Print ${n}` : "Print";
 };
 list.addEventListener("change", update);
 $("all").addEventListener("click", () => { boxes.forEach((b) => (b.checked = true)); update(); });
 $("none").addEventListener("click", () => { boxes.forEach((b) => (b.checked = false)); update(); });
-$("print").addEventListener("click", async () => {
-  const tabIds = boxes.filter((b) => b.checked).map((b) => Number(b.value));
-  await chrome.runtime.sendMessage({ cmd: "print", tabIds }).catch(() => {});
-  window.close();
-});
+for (const cmd of ["print", "refresh", "load"]) {
+  $(cmd).addEventListener("click", async () => {
+    const tabIds = boxes.filter((b) => b.checked).map((b) => Number(b.value));
+    await chrome.runtime.sendMessage({ cmd, tabIds }).catch(() => {});
+    window.close();
+  });
+}
 update();

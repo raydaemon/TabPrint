@@ -16,6 +16,10 @@ Click the TabPrint toolbar icon. A popup lists every tab in the current window.
 - Tick the tabs you want, or use **All** / **None**.
 - Click **Print**. By default each tab is saved to `Downloads/TabPrint/NN - <tab title>.pdf`
   (a single tab is saved without the number prefix).
+- **Refresh** reloads the selected tabs, which also wakes discarded (sleeping) tabs.
+- **Load** visits each selected tab, scrolls to the bottom until the page stops
+  growing, waits for images, then scrolls back to the top. Use it before printing
+  pages with lazy-loaded content. Infinite-scroll feeds stop after 200 screens.
 - The badge shows progress. Green means all succeeded, red means some failed
   (details in the service worker console).
 
@@ -38,7 +42,7 @@ so no per-tab Save dialog is needed.
 
 ## Limitations
 
-- Discarded (sleeping) tabs may print blank. Reload them first.
+- Discarded (sleeping) tabs may print blank. Use **Refresh** or **Load** first.
 - `chrome://`, Web Store and other restricted pages are greyed out and can't be printed.
 - A page range larger than a tab's page count makes that tab fail.
 
